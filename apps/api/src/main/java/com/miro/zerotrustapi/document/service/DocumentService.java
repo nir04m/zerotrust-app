@@ -2,6 +2,8 @@ package com.miro.zerotrustapi.document.service;
 
 import com.miro.zerotrustapi.audit.service.AuditService;
 import com.miro.zerotrustapi.common.util.FileNameSanitizer;
+import com.miro.zerotrustapi.crypto.dto.EncryptionResult;
+import com.miro.zerotrustapi.crypto.service.DocumentEncryptionService;
 import com.miro.zerotrustapi.document.dto.DocumentDownloadResponse;
 import com.miro.zerotrustapi.document.dto.DocumentResponse;
 import com.miro.zerotrustapi.document.dto.DocumentUploadResponse;
@@ -31,20 +33,26 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
     private final AuditService auditService;
+    private final DocumentEncryptionService documentEncryptionService;
 
     @Value("${storage.s3.bucket}")
     private String bucketName;
+
+    @Value("${file.max-size-bytes}")
+    private long maxFileSizeBytes;
 
     public DocumentService(
             S3Client s3Client,
             DocumentRepository documentRepository,
             UserRepository userRepository,
-            AuditService auditService
+            AuditService auditService,
+            DocumentEncryptionService documentEncryptionService
     ) {
         this.s3Client = s3Client;
         this.documentRepository = documentRepository;
         this.userRepository = userRepository;
         this.auditService = auditService;
+        this.documentEncryptionService = documentEncryptionService;
     }
 
     public DocumentUploadResponse uploadDocument(UUID userId, MultipartFile file) {
@@ -54,21 +62,29 @@ public class DocumentService {
             throw new IllegalArgumentException("File is empty");
         }
 
+        if (file.getSize() > maxFileSizeBytes) {
+            throw new IllegalArgumentException("File exceeds maximum allowed size");
+        }
+
         UUID documentId = UUID.randomUUID();
         String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
         String safeFileName = FileNameSanitizer.sanitize(originalFilename);
         String objectKey = "documents/" + userId + "/" + documentId + "/" + safeFileName;
 
+        EncryptionResult encryptionResult;
+
         try {
+            encryptionResult = documentEncryptionService.encrypt(file.getBytes());
+
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(objectKey)
-                    .contentType(file.getContentType())
+                    .contentType("application/octet-stream")
                     .build();
 
             s3Client.putObject(
                     putObjectRequest,
-                    RequestBody.fromBytes(file.getBytes())
+                    RequestBody.fromBytes(encryptionResult.getEncryptedBytes())
             );
         } catch (IOException e) {
             throw new RuntimeException("Failed to upload file", e);
@@ -81,7 +97,7 @@ public class DocumentService {
         document.setStoredObjectKey(objectKey);
         document.setContentType(file.getContentType());
         document.setSizeBytes(file.getSize());
-        document.setEncryptionMetadata(null);
+        document.setEncryptionMetadata(encryptionResult.getMetadataJson());
         document.setCreatedAt(LocalDateTime.now());
         document.setUpdatedAt(LocalDateTime.now());
 
@@ -92,7 +108,7 @@ public class DocumentService {
                 "DOCUMENT_UPLOADED",
                 null,
                 null,
-                "Uploaded document: " + safeFileName
+                "Uploaded encrypted document: " + safeFileName
         );
 
         return new DocumentUploadResponse(
@@ -131,6 +147,11 @@ public class DocumentService {
 
         ResponseBytes<GetObjectResponse> response = s3Client.getObjectAsBytes(getObjectRequest);
 
+        byte[] decryptedBytes = documentEncryptionService.decrypt(
+                response.asByteArray(),
+                document.getEncryptionMetadata()
+        );
+
         String contentType = document.getContentType() != null && !document.getContentType().isBlank()
                 ? document.getContentType()
                 : "application/octet-stream";
@@ -140,11 +161,11 @@ public class DocumentService {
                 "DOCUMENT_DOWNLOADED",
                 null,
                 null,
-                "Downloaded document: " + document.getOriginalFilename()
+                "Downloaded encrypted document: " + document.getOriginalFilename()
         );
 
         return new DocumentDownloadResponse(
-                response.asByteArray(),
+                decryptedBytes,
                 document.getOriginalFilename(),
                 contentType
         );
@@ -169,7 +190,7 @@ public class DocumentService {
                 "DOCUMENT_DELETED",
                 null,
                 null,
-                "Deleted document: " + document.getOriginalFilename()
+                "Deleted encrypted document: " + document.getOriginalFilename()
         );
 
         return "Document deleted successfully";
