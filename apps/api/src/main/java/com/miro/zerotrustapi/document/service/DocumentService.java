@@ -55,7 +55,12 @@ public class DocumentService {
         this.documentEncryptionService = documentEncryptionService;
     }
 
-    public DocumentUploadResponse uploadDocument(UUID userId, MultipartFile file) {
+    public DocumentUploadResponse uploadDocument(
+            UUID userId,
+            MultipartFile file,
+            String ipAddress,
+            String userAgent
+    ) {
         User user = getUserOrThrow(userId);
 
         if (file.isEmpty()) {
@@ -106,8 +111,8 @@ public class DocumentService {
         auditService.log(
                 userId,
                 "DOCUMENT_UPLOADED",
-                null,
-                null,
+                ipAddress,
+                userAgent,
                 "Uploaded encrypted document: " + safeFileName
         );
 
@@ -134,7 +139,12 @@ public class DocumentService {
                 .toList();
     }
 
-    public DocumentDownloadResponse downloadDocument(UUID userId, UUID documentId) {
+    public DocumentDownloadResponse downloadDocument(
+            UUID userId,
+            UUID documentId,
+            String ipAddress,
+            String userAgent
+    ) {
         User user = getUserOrThrow(userId);
 
         Document document = documentRepository.findByIdAndUser(documentId, user)
@@ -159,8 +169,8 @@ public class DocumentService {
         auditService.log(
                 userId,
                 "DOCUMENT_DOWNLOADED",
-                null,
-                null,
+                ipAddress,
+                userAgent,
                 "Downloaded encrypted document: " + document.getOriginalFilename()
         );
 
@@ -171,7 +181,12 @@ public class DocumentService {
         );
     }
 
-    public String deleteDocument(UUID userId, UUID documentId) {
+    public String deleteDocument(
+            UUID userId,
+            UUID documentId,
+            String ipAddress,
+            String userAgent
+    ) {
         User user = getUserOrThrow(userId);
 
         Document document = documentRepository.findByIdAndUser(documentId, user)
@@ -188,8 +203,8 @@ public class DocumentService {
         auditService.log(
                 userId,
                 "DOCUMENT_DELETED",
-                null,
-                null,
+                ipAddress,
+                userAgent,
                 "Deleted encrypted document: " + document.getOriginalFilename()
         );
 
