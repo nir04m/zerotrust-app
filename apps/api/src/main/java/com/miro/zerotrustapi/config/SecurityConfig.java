@@ -25,7 +25,14 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/health", "/api/auth/**").permitAll()
+                .requestMatchers(
+                        "/health",
+                        "/api/auth/register",
+                        "/api/auth/login",
+                        "/api/auth/login/mfa",
+                        "/api/auth/refresh",
+                        "/api/auth/logout"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
             .httpBasic(httpBasic -> httpBasic.disable())
