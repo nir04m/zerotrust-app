@@ -13,6 +13,8 @@ import com.miro.zerotrustapi.auth.dto.RefreshTokenRequest;
 import com.miro.zerotrustapi.auth.dto.RegisterRequest;
 import com.miro.zerotrustapi.auth.service.AuthService;
 import com.miro.zerotrustapi.auth.service.MfaService;
+import com.miro.zerotrustapi.security.RateLimitExceededException;
+import com.miro.zerotrustapi.security.RateLimitService;
 import com.miro.zerotrustapi.user.entity.User;
 import com.miro.zerotrustapi.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +22,7 @@ import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,17 +34,32 @@ public class AuthController {
     private final MfaService mfaService;
     private final UserRepository userRepository;
     private final AuditService auditService;
+    private final RateLimitService rateLimitService;
+
+    @Value("${security.rate-limit.login.max-attempts}")
+    private int loginMaxAttempts;
+
+    @Value("${security.rate-limit.login.window-seconds}")
+    private int loginWindowSeconds;
+
+    @Value("${security.rate-limit.mfa.max-attempts}")
+    private int mfaMaxAttempts;
+
+    @Value("${security.rate-limit.mfa.window-seconds}")
+    private int mfaWindowSeconds;
 
     public AuthController(
             AuthService authService,
             MfaService mfaService,
             UserRepository userRepository,
-            AuditService auditService
+            AuditService auditService,
+            RateLimitService rateLimitService
     ) {
         this.authService = authService;
         this.mfaService = mfaService;
         this.userRepository = userRepository;
         this.auditService = auditService;
+        this.rateLimitService = rateLimitService;
     }
 
     @PostMapping("/register")
@@ -52,6 +70,20 @@ public class AuthController {
 
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        String clientIp = getClientIp(httpRequest);
+        String rateKey = "login:" + clientIp;
+
+        if (!rateLimitService.isAllowed(rateKey, loginMaxAttempts, loginWindowSeconds)) {
+            auditService.log(
+                    null,
+                    "LOGIN_RATE_LIMIT_EXCEEDED",
+                    clientIp,
+                    httpRequest.getHeader("User-Agent"),
+                    "Too many login attempts"
+            );
+            throw new RateLimitExceededException("Too many login attempts. Please try again later.");
+        }
+
         try {
             LoginResponse response = authService.login(request);
 
@@ -60,7 +92,7 @@ public class AuthController {
                     auditService.log(
                             user.getId(),
                             response.isMfaRequired() ? "LOGIN_PASSWORD_VERIFIED_MFA_REQUIRED" : "LOGIN_SUCCESS",
-                            getClientIp(httpRequest),
+                            clientIp,
                             httpRequest.getHeader("User-Agent"),
                             "Email login attempted"
                     )
@@ -71,7 +103,7 @@ public class AuthController {
             auditService.log(
                     null,
                     "LOGIN_FAILED",
-                    getClientIp(httpRequest),
+                    clientIp,
                     httpRequest.getHeader("User-Agent"),
                     "Failed login for email: " + request.getEmail()
             );
@@ -81,14 +113,30 @@ public class AuthController {
 
     @PostMapping("/login/mfa")
     public AuthResponse loginWithMfa(@Valid @RequestBody MfaLoginRequest request, HttpServletRequest httpRequest) {
+        String clientIp = getClientIp(httpRequest);
+        String rateKey = "mfa-login:" + clientIp;
+
+        if (!rateLimitService.isAllowed(rateKey, mfaMaxAttempts, mfaWindowSeconds)) {
+            auditService.log(
+                    null,
+                    "MFA_LOGIN_RATE_LIMIT_EXCEEDED",
+                    clientIp,
+                    httpRequest.getHeader("User-Agent"),
+                    "Too many MFA login attempts"
+            );
+            throw new RateLimitExceededException("Too many MFA attempts. Please try again later.");
+        }
+
         AuthResponse response = authService.loginWithMfa(request);
+
         auditService.log(
                 null,
                 "LOGIN_MFA_SUCCESS",
-                getClientIp(httpRequest),
+                clientIp,
                 httpRequest.getHeader("User-Agent"),
                 "MFA login completed successfully"
         );
+
         return response;
     }
 
