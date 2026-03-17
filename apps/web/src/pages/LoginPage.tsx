@@ -52,50 +52,59 @@ export function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="grid w-full max-w-6xl overflow-hidden rounded-3xl border border-white/10 bg-slate-950/70 shadow-2xl shadow-black/30 backdrop-blur lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="hidden border-r border-white/10 bg-linear-to-br from-indigo-600/20 via-slate-950 to-slate-950 p-10 lg:block">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-indigo-300">
-            ZeroTrust Vault
-          </p>
-          <h1 className="mt-6 max-w-md text-4xl font-semibold leading-tight text-white">
-            Access your secure identity vault with confidence.
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-slate-300">
-            Built for privacy-first document protection, multi-factor authentication, encrypted
-            storage, and full audit visibility.
-          </p>
+    <main className="min-h-screen">
+      <div className="grid min-h-screen lg:grid-cols-[56%_44%]">
+        <section className="relative hidden overflow-hidden border-r border-white/10 lg:flex">
+          <div className="absolute inset-0 bg-linear-to-br from-indigo-500/14 via-slate-950 to-slate-950" />
+          <div className="absolute -left-10 top-10 h-72 w-72 rounded-full bg-indigo-500/10 blur-3xl" />
+          <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-sky-400/10 blur-3xl" />
 
-          <div className="mt-10 grid gap-4">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <h2 className="text-sm font-semibold text-white">Encrypted storage</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-400">
-                Sensitive files are stored with encryption and tracked through strict ownership
-                controls.
+          <div className="relative flex w-full flex-col justify-between px-14 py-14 xl:px-20 xl:py-16">
+            <div className="max-w-2xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-indigo-300">
+                ZeroTrust Vault
+              </p>
+              <h1 className="mt-8 text-5xl font-semibold leading-[1.08] text-white xl:text-6xl">
+                Secure document identity management for privacy-first workflows.
+              </h1>
+              <p className="mt-8 max-w-xl text-lg leading-8 text-slate-300">
+                Protect sensitive records with MFA, encrypted storage, strict ownership controls,
+                and a complete activity trail.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <h2 className="text-sm font-semibold text-white">Strong authentication</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-400">
-                Access tokens, refresh token rotation, and MFA verification protect each account
-                session.
-              </p>
+            <div className="grid max-w-3xl gap-5 md:grid-cols-2">
+              <article className="rounded-3xl border border-white/10 bg-white/4 p-6">
+                <h2 className="text-base font-semibold text-white">Encrypted storage</h2>
+                <p className="mt-3 text-sm leading-7 text-slate-400">
+                  Documents are stored through a private object pipeline with encryption metadata
+                  and controlled download behavior.
+                </p>
+              </article>
+
+              <article className="rounded-3xl border border-white/10 bg-white/4 p-6">
+                <h2 className="text-base font-semibold text-white">Strong authentication</h2>
+                <p className="mt-3 text-sm leading-7 text-slate-400">
+                  JWT sessions, refresh rotation, MFA verification, and rate limiting protect every
+                  sign-in attempt.
+                </p>
+              </article>
             </div>
           </div>
         </section>
 
-        <section className="p-6 sm:p-8 lg:p-10">
-          <div className="mx-auto max-w-md">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300 lg:hidden">
+        <section className="flex min-h-screen items-center px-6 py-10 sm:px-10 lg:px-14 xl:px-20">
+          <div className="w-full max-w-xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-indigo-300 lg:hidden">
               ZeroTrust Vault
             </p>
-            <h2 className="mt-3 text-3xl font-semibold text-white">Sign in</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-400">
-              Enter your account credentials to continue to your secure workspace.
+            <h2 className="mt-4 text-4xl font-semibold text-white">Sign in</h2>
+            <p className="mt-4 max-w-lg text-base leading-7 text-slate-400">
+              Continue to your secure workspace and manage encrypted documents, activity logs, and
+              account protections.
             </p>
 
-            <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+            <form onSubmit={handleSubmit} className="mt-10 space-y-6" noValidate>
               <div>
                 <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-200">
                   Email address
@@ -104,10 +113,10 @@ export function LoginPage() {
                   id="email"
                   type="email"
                   autoComplete="email"
-                  className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white placeholder:text-slate-500 focus:border-indigo-400"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-5 py-4 text-base text-white focus:border-indigo-400"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(event) => setEmail(event.target.value)}
                   required
                   aria-describedby={error ? 'login-error' : undefined}
                 />
@@ -124,10 +133,10 @@ export function LoginPage() {
                   id="password"
                   type="password"
                   autoComplete="current-password"
-                  className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white placeholder:text-slate-500 focus:border-indigo-400"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-5 py-4 text-base text-white focus:border-indigo-400"
                   placeholder="Enter your password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
                   required
                   aria-describedby={error ? 'login-error' : undefined}
                 />
@@ -146,18 +155,18 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-2xl bg-white px-4 py-3 font-medium text-slate-950 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-2xl bg-white px-5 py-4 text-base font-medium text-slate-950 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? 'Signing in...' : 'Sign in'}
               </button>
             </form>
 
-            <p className="mt-6 text-sm text-slate-400">
-              Need an account?{' '}
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+              <span>Need an account?</span>
               <Link to="/register" className="font-medium text-indigo-300 hover:text-indigo-200">
                 Create one
               </Link>
-            </p>
+            </div>
           </div>
         </section>
       </div>

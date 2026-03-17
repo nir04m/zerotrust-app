@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 
@@ -5,13 +6,13 @@ const navigation = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/documents', label: 'Documents' },
   { to: '/audit', label: 'Audit Logs' },
-  { to: '/settings', label: 'Settings' },
 ]
 
 export function AppShell() {
   const { clearAuth } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   async function handleLogout() {
     await clearAuth()
@@ -19,22 +20,78 @@ export function AppShell() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-50">
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col lg:flex-row">
-        <aside className="border-b border-white/10 bg-slate-950/70 backdrop-blur lg:min-h-screen lg:w-72 lg:border-r lg:border-b-0">
-          <div className="p-6">
+    <div className="min-h-screen text-slate-100">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-400 items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 lg:hidden"
+              aria-label={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={sidebarOpen}
+              onClick={() => setSidebarOpen((value) => !value)}
+            >
+              {sidebarOpen ? '×' : '☰'}
+            </button>
+
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-indigo-300">
+                ZeroTrust Vault
+              </p>
+              <h1 className="text-sm font-medium text-slate-200">
+                Privacy-first identity security
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              to="/settings"
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-white/10"
+            >
+              Settings
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-200 hover:bg-red-500/20"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto flex max-w-400">
+        {sidebarOpen ? (
+          <button
+            type="button"
+            className="fixed inset-0 z-30 bg-slate-950/50 lg:hidden"
+            aria-label="Close navigation overlay"
+            onClick={() => setSidebarOpen(false)}
+          />
+        ) : null}
+
+        <aside
+          className={[
+            'fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-72.5 border-r border-white/10 bg-slate-950/95 px-5 py-6 backdrop-blur lg:sticky lg:block',
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+            'transition-transform duration-200 lg:translate-x-0',
+          ].join(' ')}
+        >
+          <div className="rounded-2xl border border-white/10 bg-white/3 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-300">
-              ZeroTrust Vault
+              Workspace
             </p>
-            <h1 className="mt-2 text-2xl font-semibold text-white">
-              Privacy-first identity vault
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-slate-400">
+            <h2 className="mt-3 text-3xl font-semibold leading-tight text-white">
+              Identity vault
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-slate-400">
               Secure access to encrypted documents, identity records, and account activity.
             </p>
           </div>
 
-          <nav aria-label="Primary navigation" className="px-4 pb-4">
+          <nav aria-label="Primary navigation" className="mt-6">
             <ul className="space-y-2">
               {navigation.map((item) => {
                 const active = location.pathname === item.to
@@ -42,13 +99,14 @@ export function AppShell() {
                   <li key={item.to}>
                     <Link
                       to={item.to}
+                      onClick={() => setSidebarOpen(false)}
+                      aria-current={active ? 'page' : undefined}
                       className={[
-                        'block rounded-xl px-4 py-3 text-sm font-medium',
+                        'block rounded-2xl px-4 py-3 text-sm font-medium',
                         active
-                          ? 'bg-indigo-500/20 text-white ring-1 ring-indigo-400/40'
+                          ? 'border border-indigo-400/30 bg-indigo-500/15 text-white'
                           : 'text-slate-300 hover:bg-white/5 hover:text-white',
                       ].join(' ')}
-                      aria-current={active ? 'page' : undefined}
                     >
                       {item.label}
                     </Link>
@@ -57,22 +115,10 @@ export function AppShell() {
               })}
             </ul>
           </nav>
-
-          <div className="px-4 pb-6 lg:mt-auto">
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="w-full rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-200 hover:bg-red-500/20"
-            >
-              Sign out
-            </button>
-          </div>
         </aside>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-10">
-          <div className="mx-auto max-w-5xl">
-            <Outlet />
-          </div>
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <Outlet />
         </main>
       </div>
     </div>
