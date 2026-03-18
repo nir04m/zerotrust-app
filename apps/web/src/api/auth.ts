@@ -33,3 +33,12 @@ export async function logoutUser(payload: { refreshToken: string }) {
   const { data } = await api.post('/api/auth/logout', payload)
   return data as { message: string }
 }
+
+export async function getMe() {
+  const { data } = await api.get('/api/auth/me')
+  return data as {
+    id: string
+    email: string
+    mfaEnabled: boolean
+  }
+}

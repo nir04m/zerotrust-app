@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -138,6 +139,20 @@ public class AuthController {
         );
 
         return response;
+    }
+
+    @GetMapping("/me")
+    public Map<String, Object> getCurrentUser(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        return Map.of(
+                "id", user.getId(),
+                "email", user.getEmail(),
+                "mfaEnabled", user.isMfaEnabled()
+        );
     }
 
     @PostMapping("/refresh")

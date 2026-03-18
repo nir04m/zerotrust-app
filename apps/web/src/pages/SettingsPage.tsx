@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { SyntheticEvent } from 'react'
 import { disableMfa, setupMfa, verifyMfa } from '../api/mfa'
+import { getMe } from '../api/auth'
 
 export function SettingsPage() {
   const [setupLoading, setSetupLoading] = useState(false)
@@ -10,11 +11,29 @@ export function SettingsPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  const [mfaEnabled, setMfaEnabled] = useState(false)
+  const [loadingUser, setLoadingUser] = useState(true)
+
   const [qrCodeImageDataUrl, setQrCodeImageDataUrl] = useState('')
   const [secret, setSecret] = useState('')
 
   const [verifyCode, setVerifyCode] = useState('')
   const [disableCode, setDisableCode] = useState('')
+
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const user = await getMe()
+        setMfaEnabled(user.mfaEnabled)
+      } catch (error) {
+        console.error('Failed to load current user', error)
+      } finally {
+        setLoadingUser(false)
+      }
+    }
+
+    void loadUser()
+  }, [])
 
   async function handleStartMfaSetup() {
     setError('')
@@ -65,6 +84,7 @@ export function SettingsPage() {
       const data = await verifyMfa(verifyCode)
       setSuccess(data.message || 'MFA enabled successfully.')
       setVerifyCode('')
+      setMfaEnabled(true)
     } catch {
       setError('Failed to verify MFA code.')
     } finally {
@@ -85,6 +105,7 @@ export function SettingsPage() {
       setQrCodeImageDataUrl('')
       setSecret('')
       setVerifyCode('')
+      setMfaEnabled(false)
     } catch {
       setError('Failed to disable MFA. Check your code and try again.')
     } finally {
@@ -98,11 +119,20 @@ export function SettingsPage() {
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-indigo-300">
           Settings
         </p>
+
         <h2 id="settings-heading" className="mt-4 text-4xl font-semibold text-white">
           Account and security controls
         </h2>
+
         <p className="mt-4 max-w-4xl text-base leading-8 text-slate-400">
           Manage multi-factor authentication and other account protections from one place.
+        </p>
+
+        <p className="mt-4 text-sm text-slate-400">
+          MFA status:{' '}
+          <span className={mfaEnabled ? 'text-emerald-300' : 'text-slate-300'}>
+            {loadingUser ? 'Loading...' : mfaEnabled ? 'Enabled' : 'Disabled'}
+          </span>
         </p>
 
         {error ? (
@@ -232,8 +262,13 @@ export function SettingsPage() {
 
               <button
                 type="submit"
-                disabled={disableLoading}
-                className="w-full rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={disableLoading || loadingUser || !mfaEnabled}
+                className={[
+                  'w-full rounded-2xl px-4 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60',
+                  mfaEnabled
+                    ? 'border border-red-400/20 bg-red-500/10 text-red-200 hover:bg-red-500/20'
+                    : 'border border-white/10 bg-white/5 text-slate-500',
+                ].join(' ')}
               >
                 {disableLoading ? 'Disabling...' : 'Disable MFA'}
               </button>
