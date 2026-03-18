@@ -2,8 +2,6 @@ package com.miro.zerotrustapi.document.service;
 
 import com.miro.zerotrustapi.audit.service.AuditService;
 import com.miro.zerotrustapi.common.util.FileNameSanitizer;
-import com.miro.zerotrustapi.crypto.dto.EncryptionResult;
-import com.miro.zerotrustapi.crypto.service.DocumentEncryptionService;
 import com.miro.zerotrustapi.document.dto.DocumentDownloadResponse;
 import com.miro.zerotrustapi.document.dto.DocumentResponse;
 import com.miro.zerotrustapi.document.dto.DocumentUploadResponse;
@@ -33,7 +31,6 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
     private final AuditService auditService;
-    private final DocumentEncryptionService documentEncryptionService;
 
     @Value("${storage.s3.bucket}")
     private String bucketName;
@@ -45,19 +42,20 @@ public class DocumentService {
             S3Client s3Client,
             DocumentRepository documentRepository,
             UserRepository userRepository,
-            AuditService auditService,
-            DocumentEncryptionService documentEncryptionService
+            AuditService auditService
     ) {
         this.s3Client = s3Client;
         this.documentRepository = documentRepository;
         this.userRepository = userRepository;
         this.auditService = auditService;
-        this.documentEncryptionService = documentEncryptionService;
     }
 
-    public DocumentUploadResponse uploadDocument(
+    public DocumentUploadResponse uploadEncryptedDocument(
             UUID userId,
             MultipartFile file,
+            String originalFilename,
+            String contentType,
+            String encryptionMetadata,
             String ipAddress,
             String userAgent
     ) {
@@ -71,16 +69,17 @@ public class DocumentService {
             throw new IllegalArgumentException("File exceeds maximum allowed size");
         }
 
+        if (encryptionMetadata == null || encryptionMetadata.isBlank()) {
+            throw new IllegalArgumentException("Encryption metadata is required");
+        }
+
         UUID documentId = UUID.randomUUID();
-        String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
-        String safeFileName = FileNameSanitizer.sanitize(originalFilename);
+        String safeFileName = FileNameSanitizer.sanitize(
+                originalFilename != null ? originalFilename : "file"
+        );
         String objectKey = "documents/" + userId + "/" + documentId + "/" + safeFileName;
 
-        EncryptionResult encryptionResult;
-
         try {
-            encryptionResult = documentEncryptionService.encrypt(file.getBytes());
-
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(objectKey)
@@ -89,10 +88,10 @@ public class DocumentService {
 
             s3Client.putObject(
                     putObjectRequest,
-                    RequestBody.fromBytes(encryptionResult.getEncryptedBytes())
+                    RequestBody.fromBytes(file.getBytes())
             );
         } catch (IOException e) {
-            throw new RuntimeException("Failed to upload file", e);
+            throw new RuntimeException("Failed to upload encrypted file", e);
         }
 
         Document document = new Document();
@@ -100,9 +99,9 @@ public class DocumentService {
         document.setUser(user);
         document.setOriginalFilename(safeFileName);
         document.setStoredObjectKey(objectKey);
-        document.setContentType(file.getContentType());
+        document.setContentType(contentType);
         document.setSizeBytes(file.getSize());
-        document.setEncryptionMetadata(encryptionResult.getMetadataJson());
+        document.setEncryptionMetadata(encryptionMetadata);
         document.setCreatedAt(LocalDateTime.now());
         document.setUpdatedAt(LocalDateTime.now());
 
@@ -113,7 +112,7 @@ public class DocumentService {
                 "DOCUMENT_UPLOADED",
                 ipAddress,
                 userAgent,
-                "Uploaded encrypted document: " + safeFileName
+                "Uploaded E2EE document: " + safeFileName
         );
 
         return new DocumentUploadResponse(
@@ -139,7 +138,7 @@ public class DocumentService {
                 .toList();
     }
 
-    public DocumentDownloadResponse downloadDocument(
+    public DocumentDownloadResponse downloadEncryptedDocument(
             UUID userId,
             UUID documentId,
             String ipAddress,
@@ -157,27 +156,18 @@ public class DocumentService {
 
         ResponseBytes<GetObjectResponse> response = s3Client.getObjectAsBytes(getObjectRequest);
 
-        byte[] decryptedBytes = documentEncryptionService.decrypt(
-                response.asByteArray(),
-                document.getEncryptionMetadata()
-        );
-
-        String contentType = document.getContentType() != null && !document.getContentType().isBlank()
-                ? document.getContentType()
-                : "application/octet-stream";
-
         auditService.log(
                 userId,
                 "DOCUMENT_DOWNLOADED",
                 ipAddress,
                 userAgent,
-                "Downloaded encrypted document: " + document.getOriginalFilename()
+                "Downloaded E2EE document: " + document.getOriginalFilename()
         );
 
         return new DocumentDownloadResponse(
-                decryptedBytes,
+                response.asByteArray(),
                 document.getOriginalFilename(),
-                contentType
+                document.getContentType() != null ? document.getContentType() : "application/octet-stream"
         );
     }
 
@@ -205,10 +195,19 @@ public class DocumentService {
                 "DOCUMENT_DELETED",
                 ipAddress,
                 userAgent,
-                "Deleted encrypted document: " + document.getOriginalFilename()
+                "Deleted document: " + document.getOriginalFilename()
         );
 
         return "Document deleted successfully";
+    }
+
+    public String getEncryptionMetadata(UUID userId, UUID documentId) {
+        User user = getUserOrThrow(userId);
+
+        Document document = documentRepository.findByIdAndUser(documentId, user)
+                .orElseThrow(() -> new IllegalArgumentException("Document not found"));
+
+        return document.getEncryptionMetadata();
     }
 
     private User getUserOrThrow(UUID userId) {

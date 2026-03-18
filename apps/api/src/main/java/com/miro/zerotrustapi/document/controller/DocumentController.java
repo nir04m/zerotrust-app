@@ -1,15 +1,16 @@
 package com.miro.zerotrustapi.document.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miro.zerotrustapi.document.dto.DocumentDownloadResponse;
 import com.miro.zerotrustapi.document.dto.DocumentResponse;
 import com.miro.zerotrustapi.document.dto.DocumentUploadResponse;
+import com.miro.zerotrustapi.document.dto.EncryptedUploadMetadata;
 import com.miro.zerotrustapi.document.service.DocumentService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class DocumentController {
 
     private final DocumentService documentService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DocumentController(DocumentService documentService) {
         this.documentService = documentService;
@@ -30,12 +32,20 @@ public class DocumentController {
     public DocumentUploadResponse uploadDocument(
             Principal principal,
             @RequestPart("file") MultipartFile file,
+            @RequestPart("metadata") String metadataJson,
             HttpServletRequest request
-    ) {
+    ) throws Exception {
         UUID userId = UUID.fromString(principal.getName());
-        return documentService.uploadDocument(
+
+        EncryptedUploadMetadata metadata =
+                objectMapper.readValue(metadataJson, EncryptedUploadMetadata.class);
+
+        return documentService.uploadEncryptedDocument(
                 userId,
                 file,
+                metadata.getOriginalFilename(),
+                metadata.getContentType(),
+                metadata.getEncryptionMetadata(),
                 getClientIp(request),
                 request.getHeader("User-Agent")
         );
@@ -55,7 +65,7 @@ public class DocumentController {
     ) {
         UUID userId = UUID.fromString(principal.getName());
 
-        DocumentDownloadResponse document = documentService.downloadDocument(
+        DocumentDownloadResponse document = documentService.downloadEncryptedDocument(
                 userId,
                 documentId,
                 getClientIp(request),
@@ -68,8 +78,20 @@ public class DocumentController {
                 .header(HttpHeaders.PRAGMA, "no-cache")
                 .header(HttpHeaders.EXPIRES, "0")
                 .header("X-Content-Type-Options", "nosniff")
-                .contentType(MediaType.parseMediaType(document.getContentType()))
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(document.getContent());
+    }
+
+    @GetMapping("/{documentId}/metadata")
+    public Map<String, String> getDocumentMetadata(
+            Principal principal,
+            @PathVariable UUID documentId
+    ) {
+        UUID userId = UUID.fromString(principal.getName());
+        return Map.of(
+                "encryptionMetadata",
+                documentService.getEncryptionMetadata(userId, documentId)
+        );
     }
 
     @DeleteMapping("/{documentId}")
