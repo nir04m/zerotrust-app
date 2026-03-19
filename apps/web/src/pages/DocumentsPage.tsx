@@ -122,16 +122,16 @@ export function DocumentsPage() {
   return (
     <>
       <section aria-labelledby="documents-heading" className="space-y-8">
-        <div className="rounded-[28px] border border-white/10 bg-slate-950/60 p-6 shadow-xl shadow-black/20 sm:p-8">
+        <div className="rounded-[28px] border border-white/10 bg-slate-950/60 p-5 shadow-xl shadow-black/20 sm:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-indigo-300">
                 Documents
               </p>
-              <h2 id="documents-heading" className="mt-4 text-4xl font-semibold text-white">
+              <h2 id="documents-heading" className="mt-4 text-3xl font-semibold text-white sm:text-4xl">
                 Encrypted document management
               </h2>
-              <p className="mt-4 max-w-4xl text-base leading-8 text-slate-400">
+              <p className="mt-4 max-w-4xl text-sm leading-7 text-slate-400 sm:text-base sm:leading-8">
                 Upload, review, download, and remove secure documents stored in your private vault.
               </p>
             </div>
@@ -151,9 +151,7 @@ export function DocumentsPage() {
                 onChange={handleFileChange}
                 disabled={uploading}
               />
-              <p className="text-xs text-slate-500">
-                Supported by your secure backend upload flow.
-              </p>
+              <p className="text-xs text-slate-500">Supported by your secure backend upload flow.</p>
             </div>
           </div>
 
@@ -176,7 +174,7 @@ export function DocumentsPage() {
           ) : null}
 
           <div className="mt-8 overflow-hidden rounded-3xl border border-white/10 bg-white/3">
-            <div className="hidden grid-cols-[minmax(0,1.6fr)_160px_220px_220px] gap-4 border-b border-white/10 px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 md:grid">
+            <div className="hidden grid-cols-[minmax(0,1.6fr)_160px_220px_220px] gap-4 border-b border-white/10 px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 lg:grid">
               <span>Document</span>
               <span>Size</span>
               <span>Uploaded</span>
@@ -195,8 +193,8 @@ export function DocumentsPage() {
                   const isBusy = busyDocumentId === document.id
 
                   return (
-                    <li key={document.id} className="px-6 py-5">
-                      <div className="grid gap-4 md:grid-cols-[minmax(0,1.6fr)_160px_220px_220px] md:items-center">
+                    <li key={document.id} className="px-4 py-5 sm:px-6">
+                      <div className="hidden gap-4 lg:grid lg:grid-cols-[minmax(0,1.6fr)_160px_220px_220px] lg:items-center">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-white">
                             {document.originalFilename}
@@ -207,12 +205,10 @@ export function DocumentsPage() {
                         </div>
 
                         <div className="text-sm text-slate-300">
-                          <span className="md:hidden text-slate-500">Size: </span>
                           {formatBytes(document.sizeBytes)}
                         </div>
 
                         <div className="text-sm text-slate-300">
-                          <span className="md:hidden text-slate-500">Uploaded: </span>
                           {formatDate(document.createdAt)}
                         </div>
 
@@ -231,6 +227,57 @@ export function DocumentsPage() {
                             onClick={() => setDocumentToDelete(document)}
                             disabled={isBusy}
                             className="rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 lg:hidden">
+                        <div>
+                          <p className="wrap-break-word text-sm font-medium text-white">
+                            {document.originalFilename}
+                          </p>
+                          <p className="mt-1 wrap-break-word text-xs text-slate-500">
+                            {document.contentType || 'application/octet-stream'}
+                          </p>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-2xl border border-white/10 bg-white/2 px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                              Size
+                            </p>
+                            <p className="mt-2 text-sm text-slate-200">
+                              {formatBytes(document.sizeBytes)}
+                            </p>
+                          </div>
+
+                          <div className="rounded-2xl border border-white/10 bg-white/2 px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                              Uploaded
+                            </p>
+                            <p className="mt-2 text-sm text-slate-200">
+                              {formatDate(document.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <button
+                            type="button"
+                            onClick={() => handleDownload(document)}
+                            disabled={isBusy}
+                            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm font-medium text-slate-200 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isBusy ? 'Working...' : 'Download'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setDocumentToDelete(document)}
+                            disabled={isBusy}
+                            className="w-full rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-3 text-sm font-medium text-red-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             Delete
                           </button>

@@ -61,7 +61,7 @@ export function AuditPage() {
 
   return (
     <section aria-labelledby="audit-heading" className="space-y-8">
-      <div className="rounded-[28px] border border-white/10 bg-slate-950/60 p-6 shadow-xl shadow-black/20 sm:p-8">
+      <div className="rounded-[28px] border border-white/10 bg-slate-950/60 p-5 shadow-xl shadow-black/20 sm:p-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-indigo-300">
@@ -70,12 +70,12 @@ export function AuditPage() {
 
             <h2
               id="audit-heading"
-              className="mt-4 text-4xl font-semibold text-white"
+              className="mt-4 text-3xl font-semibold text-white sm:text-4xl"
             >
               Security activity history
             </h2>
 
-            <p className="mt-4 max-w-4xl text-base leading-8 text-slate-400">
+            <p className="mt-4 max-w-4xl text-sm leading-7 text-slate-400 sm:text-base sm:leading-8">
               Monitor login attempts, MFA activity, document uploads, downloads,
               and deletions associated with your account.
             </p>
@@ -102,7 +102,7 @@ export function AuditPage() {
         ) : null}
 
         <div className="mt-10 overflow-hidden rounded-3xl border border-white/10 bg-white/3">
-          <div className="hidden grid-cols-[240px_200px_1fr_220px] gap-4 border-b border-white/10 px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 md:grid">
+          <div className="hidden grid-cols-[240px_200px_1fr_220px] gap-4 border-b border-white/10 px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 lg:grid">
             <span>Action</span>
             <span>IP Address</span>
             <span>Details</span>
@@ -121,8 +121,8 @@ export function AuditPage() {
             <>
               <ul className="divide-y divide-white/10">
                 {visibleLogs.map((log) => (
-                  <li key={log.id} className="px-6 py-5">
-                    <div className="grid gap-4 md:grid-cols-[240px_200px_1fr_220px] md:items-center">
+                  <li key={log.id} className="px-4 py-5 sm:px-6">
+                    <div className="hidden gap-4 lg:grid lg:grid-cols-[240px_200px_1fr_220px] lg:items-center">
                       <div className="text-sm font-medium text-white">
                         {actionLabel(log.action)}
                       </div>
@@ -131,7 +131,7 @@ export function AuditPage() {
                         {log.ipAddress ?? 'Unknown'}
                       </div>
 
-                      <div className="text-sm text-slate-300">
+                      <div className="text-sm text-slate-300 wrap-break-word">
                         {log.details}
                       </div>
 
@@ -139,12 +139,52 @@ export function AuditPage() {
                         {formatDate(log.createdAt)}
                       </div>
                     </div>
+
+                    <div className="space-y-4 lg:hidden">
+                      <div>
+                        <p className="text-sm font-medium text-white">
+                          {actionLabel(log.action)}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {formatDate(log.createdAt)}
+                        </p>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-2xl border border-white/10 bg-white/2 px-4 py-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                            IP Address
+                          </p>
+                          <p className="mt-2 wrap-break-word text-sm text-slate-200">
+                            {log.ipAddress ?? 'Unknown'}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-white/10 bg-white/2 px-4 py-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                            Event Time
+                          </p>
+                          <p className="mt-2 text-sm text-slate-200">
+                            {formatDate(log.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-white/2 px-4 py-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                          Details
+                        </p>
+                        <p className="mt-2 wrap-break-word text-sm text-slate-200">
+                          {log.details}
+                        </p>
+                      </div>
+                    </div>
                   </li>
                 ))}
               </ul>
 
               {hasMoreThanInitial ? (
-                <div className="flex flex-col gap-3 border-t border-white/10 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 border-t border-white/10 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                   <p className="text-sm text-slate-400">
                     {showAll
                       ? 'Showing the full activity history.'
