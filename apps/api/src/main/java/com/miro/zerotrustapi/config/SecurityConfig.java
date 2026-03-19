@@ -26,12 +26,22 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                        "/health",
-                        "/api/auth/register",
-                        "/api/auth/login",
-                        "/api/auth/login/mfa",
-                        "/api/auth/refresh",
-                        "/api/auth/logout"
+                    "/",
+                    "/index.html",
+                    "/login",
+                    "/register",
+                    "/mfa-login",
+                    "/dashboard",
+                    "/documents",
+                    "/audit",
+                    "/settings",
+                    "/assets/**",
+                    "/favicon.ico",
+                    "/health",
+                    "/api/auth/register",
+                    "/api/auth/login",
+                    "/api/auth/login/mfa",
+                    "/api/auth/refresh"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

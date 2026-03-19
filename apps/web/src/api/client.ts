@@ -6,7 +6,7 @@ const initialToken =
   typeof window !== 'undefined' ? localStorage.getItem(ACCESS_TOKEN_KEY) : null
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || '',
   headers: initialToken
     ? {
         Authorization: `Bearer ${initialToken}`,
